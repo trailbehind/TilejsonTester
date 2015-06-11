@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html ng-app="tilejsonTesterApp">
+<head>
+    <title>Tilejson tester</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"/>
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    
+    <style type="text/css">
+        body {
+            padding: 0;
+            margin: 0;
+        }
+        html, body {
+            height: 100%;
+        }
+        .ng-invalid {
+            border-color: red;
+            border-width: 3px;
+        }
+        .latlon {
+            width:70px;
+        }
+    </style>
+    
+    <script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.3.15/angular.min.js"></script>
+    <script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+    <script src="angular-leaflet-directive.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+    <script>
+        var NODATA = -1;
+        var app = angular.module('tilejsonTesterApp', ['leaflet-directive']);
+
+        app.controller('MapController', 
+            ['$scope', '$location', 'leafletData', 
+            function($scope ,  $location ,  leafletData) {
+                angular.extend($scope, {
+                    center: {
+                        lat: 0,
+                        lng: 0,
+                        zoom: 4
+                    },
+                    defaults: {
+                        attributionControl: true,
+                        zoomControlPosition: "topright",
+                        scrollWheelZoom: true,
+                    },
+                    controls: {
+                        layers: {
+                            visible: false,
+                            position: "topright",
+                            collapsed: true
+                        },
+                        scale: {},
+                    },
+                    tilejson: {
+                        "tilejson": "2.1.0",
+                        "name": "Layer name",
+                        "description": "Layer Description",
+                        "version": "1.0.0",
+                        "attribution": "attribution",
+                        "scheme": "xyz",
+                        "tiles": [
+                        ""
+                        ],
+                        "minzoom": 0,
+                        "maxzoom": 11,
+                        "bounds": [ -180, -85.05112877980659, 180, 85.0511287798066 ],
+                    }
+                });
+
+$scope.updateLayer = function() {
+    leafletData.getMap().then(function(map) {
+        if($scope.tilejsonLayer) {
+            map.removeLayer($scope.tilejsonLayer);
+            $scope.tilejsonLayer = null;
+        }
+        if($scope.tilejson) {
+            var layerdef = {
+                "scheme": "xyz",
+                "minzoom": 0,
+                "maxzoom": 11,
+                "maxzoom": 22,
+                "bounds": [-180, -90, 180, 90],
+            };
+            angular.extend(layerdef, $scope.tilejson);
+            if(layerdef.minzoom) {
+                layerdef.minZoom = layerdef.minzoom;
+                delete layerdef.minzoom;
+            }
+            if(layerdef.maxzoom) {
+                layerdef.maxZoom = layerdef.maxzoom;
+                delete layerdef.maxzoom;
+            }
+            if(layerdef.scheme != undefined) {
+                if(layerdef.scheme == "tms") {
+                    layerdef.tms = true;
+                }
+                delete layerdef.scheme;
+            }
+            if(layerdef.bounds && layerdef.bounds.length == 4) {
+                layerdef.bounds = L.latLngBounds(
+                    L.latLng(layerdef.bounds[1], layerdef.bounds[0]),
+                    L.latLng(layerdef.bounds[3], layerdef.bounds[2]));
+            }
+            $scope.tilejsonLayer = L.tileLayer(layerdef.tiles[0], layerdef);
+            map.addLayer($scope.tilejsonLayer);
+        }
+    });
+};
+
+$scope.downloadJson = function() {
+    var data = angular.toJson($scope.tilejson, true);
+    var url = 'data:text/json;charset=utf8,' + encodeURIComponent(data);
+    window.open(url, '_blank');
+    window.focus();
+};
+
+function handleFileSelect(evt) {
+    console.log(evt);
+    var files = evt.target.files;
+    for (var i = 0, f; f = files[i]; i++) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                $scope.tilejson = angular.fromJson(e.target.result);
+                $scope.$apply();
+                $scope.updateLayer();
+            } catch(e) {
+                console.log(e);
+            }
+        }
+        reader.readAsText(f);
+    }
+    document.getElementById('files').value = null;
+}
+
+document.getElementById('files').addEventListener('change', handleFileSelect, false);
+
+} ]);
+
+app.directive('jsonText', function() {
+  return {
+    restrict: 'A', // only activate on element attribute
+    require: 'ngModel', // get a hold of NgModelController
+    link: function(scope, element, attrs, ngModelCtrl) {
+
+      var lastValid;
+
+      // push() if faster than unshift(), and avail. in IE8 and earlier (unshift isn't)
+      ngModelCtrl.$parsers.push(fromUser);
+      ngModelCtrl.$formatters.push(toUser);
+
+      // clear any invalid changes on blur
+      element.bind('blur', function () {
+        element.val(toUser(scope.$eval(attrs.ngModel)));
+    });
+
+      // $watch(attrs.ngModel) wouldn't work if this directive created a new scope;
+      // see http://stackoverflow.com/questions/14693052/watch-ngmodel-from-inside-directive-using-isolate-scope how to do it then
+      scope.$watch(attrs.ngModel, function(newValue, oldValue) {
+        lastValid = lastValid || newValue;
+
+        if (newValue != oldValue) {
+          ngModelCtrl.$setViewValue(toUser(newValue));
+
+          // TODO avoid this causing the focus of the input to be lost..
+          ngModelCtrl.$render();
+      }
+      }, true); // MUST use objectEquality (true) here, for some reason..
+
+      function fromUser(text) {
+        // Beware: trim() is not available in old browsers
+        if (!text || text.trim() === '') {
+          return {};
+      } else {
+          try {
+            lastValid = angular.fromJson(text);
+            ngModelCtrl.$setValidity('invalidJson', true);
+        } catch(e) {
+            ngModelCtrl.$setValidity('invalidJson', false);
+        }
+        return lastValid;
+    }
+}
+
+function toUser(object) {
+        // better than JSON.stringify(), because it formats + filters $$hashKey etc.
+        return angular.toJson(object, true);
+    }
+}
+};
+});
+
+</script>
+</head>
+
+<body ng-controller="MapController">
+
+    <div style="height:100%" class="container-fluid">
+      <div style="height:100%" class="row">
+          <div style="height:100%;overflow:scroll" class="col-md-4">
+            <form>
+                <div class="form-group">
+                    <label for="files">Load existing file</label>
+                    <input class="form-control" type="file" id="files" name="file" />
+                </div>
+                <div class="form-group">
+                    <label for="tilejsonversion">Tilejson Version</label>
+                    <select class="form-control" id="tilejsonversion" ng-model="tilejson.tilejson">
+                        <option value="1.0.0">1.0.0</option>
+                        <option value="2.0.0">2.0.0</option>
+                        <option value="2.0.1">2.0.1</option>
+                        <option value="2.1.0">2.1.0</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Name</label><input class="form-control" type="text" ng-model="tilejson.name" size="40"/>
+                </div>
+                <div class="form-group">
+                    <label>Description</label><input class="form-control" type="text" ng-model="tilejson.description" />
+                </div>
+                <div class="form-group">
+                    <label >Attribution</label><input class="form-control" type="text" ng-model="tilejson.attribution" />
+                </div>
+                <div class="form-group">
+                    <label>version</label><input class="form-control" type="text" ng-model="tilejson.version" size="10" />
+                </div>
+                <div class="form-group">
+                    <label for="scheme">Scheme</label>
+                    <select class="form-control" name="scheme" ng-model="tilejson.scheme">
+                        <option value="xyz">xyz</option> 
+                        <option value="tms">tms</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Zoom</label>
+                    <div>
+                        <input type="number" min="0" max="22" ng-model="tilejson.minzoom" />
+                        -
+                        <input type="number" min="0" max="22" ng-model="tilejson.maxzoom" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>URL</label><input class="form-control" type="url" ng-model="tilejson.tiles[0]" size="40" />
+                </div>
+                <div class="form-group">
+                    <label>Bounds</label>
+                    <div>
+                    SW <input class="latlon" type="number" min="-90" max="90" ng-model="tilejson.bounds[1]" />,<input class="latlon" type="number" min="-180" max="180" ng-model="tilejson.bounds[0]" /> 
+                    NE <input class="latlon" type="number" min="-90" max="90" ng-model="tilejson.bounds[3]" />,<input class="latlon" type="number" min="-180" max="180" ng-model="tilejson.bounds[2]" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-default" ng-click="updateLayer()">Update Map</button>
+                    <button class="btn btn-default" ng-click="downloadJson()">Download TileJSON</button>
+                </div>
+                <div class="form-group">
+                    <label>JSON, editable</label>
+                    <textarea class="form-control" json-text ng-model='tilejson' cols="30" rows="20"></textarea>
+                </div>
+            </form>
+        </div>
+        <div style="height:100%" class="col-md-8">
+            <leaflet defaults="defaults" width="100%" height="100%" center="center" controls="controls"></leaflet>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
