@@ -239,9 +239,9 @@ function toUser(object) {
                 <div class="form-group">
                     <label>Zoom</label>
                     <div>
-                        <input type="number" min="0" max="22" ng-model="tilejson.minzoom" />
+                        <input type="number" min="0" max="22" step="1" ng-model="tilejson.minzoom" />
                         -
-                        <input type="number" min="0" max="22" ng-model="tilejson.maxzoom" />
+                        <input type="number" min="0" max="22" step="1" ng-model="tilejson.maxzoom" />
                     </div>
                 </div>
                 <div class="form-group">
@@ -250,8 +250,8 @@ function toUser(object) {
                 <div class="form-group">
                     <label>Bounds</label>
                     <div>
-                    SW <input class="latlon" type="number" min="-90" max="90" ng-model="tilejson.bounds[1]" />,<input class="latlon" type="number" min="-180" max="180" ng-model="tilejson.bounds[0]" /> 
-                    NE <input class="latlon" type="number" min="-90" max="90" ng-model="tilejson.bounds[3]" />,<input class="latlon" type="number" min="-180" max="180" ng-model="tilejson.bounds[2]" />
+                    SW <input class="latlon" type="number" min="-90" max="90" step="any" ng-model="tilejson.bounds[1]" />,<input class="latlon" type="number" min="-180" max="180" step="any" ng-model="tilejson.bounds[0]" /> 
+                    NE <input class="latlon" type="number" min="-90" max="90" step="any" ng-model="tilejson.bounds[3]" />,<input class="latlon" type="number" min="-180" max="180" step="any" ng-model="tilejson.bounds[2]" />
                     </div>
                 </div>
                 <div class="form-group">
