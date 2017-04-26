@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html ng-app="tilejsonTesterApp">
+<html ng-app="wmsTesterApp">
 <head>
-    <title>Tilejson tester</title>
+    <title>WMS tester</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"/>
@@ -32,7 +32,7 @@
 
     <script>
         var NODATA = -1;
-        var app = angular.module('tilejsonTesterApp', ['leaflet-directive']);
+        var app = angular.module('wmsTesterApp', ['leaflet-directive']);
 
         app.controller('MapController', 
             ['$scope', '$location', 'leafletData', 
@@ -56,58 +56,40 @@
                         },
                         scale: {},
                     },
-                    tilejson: {
-                        "tilejson": "2.1.0",
-                        "name": "Layer name",
-                        "description": "Layer Description",
-                        "version": "1.0.0",
-                        "attribution": "attribution",
-                        "scheme": "xyz",
-                        "tiles": [
-                        ""
-                        ],
+                    wms: {
+                        "attribution": "",
+                        "url": "",
                         "minzoom": 0,
                         "maxzoom": 11,
-                        "bounds": [ -180, -85.05112877980659, 180, 85.0511287798066 ],
+                        "format": "image/jpeg",
+                        "transparent": false,
+                        "version": "1.1.1",
+                        "layers_string": "",
+                        "styles_string": ""
                     }
                 });
 
 $scope.updateLayer = function() {
     leafletData.getMap().then(function(map) {
-        if($scope.tilejsonLayer) {
-            map.removeLayer($scope.tilejsonLayer);
+        if($scope.wmsLayer) {
+            map.removeLayer($scope.wmsLayer);
             $scope.tilejsonLayer = null;
         }
-        if($scope.tilejson) {
+        if($scope.wms) {
+            var layers = $scope.wms.layers_string.split(",");
+            var styles = $scope.wms.styles_string.split(",");
             var layerdef = {
-                "scheme": "xyz",
-                "minzoom": 0,
-                "maxzoom": 11,
-                "maxzoom": 22,
-                "bounds": [-180, -90, 180, 90],
+                "attribution": $scope.wms.attribution,
+                "format": $scope.wms.format,
+                "layers": layers,
+                "maxzoom": $scope.wms.maxzoom,
+                "minzoom": $scope.wms.minzoom,
+                "styles": styles,
+                "transparent": $scope.wms.transparent,
+                "version": $scope.wms.version
             };
-            angular.extend(layerdef, $scope.tilejson);
-            if(layerdef.minzoom) {
-                layerdef.minZoom = layerdef.minzoom;
-                delete layerdef.minzoom;
-            }
-            if(layerdef.maxzoom) {
-                layerdef.maxZoom = layerdef.maxzoom;
-                delete layerdef.maxzoom;
-            }
-            if(layerdef.scheme != undefined) {
-                if(layerdef.scheme == "tms") {
-                    layerdef.tms = true;
-                }
-                delete layerdef.scheme;
-            }
-            if(layerdef.bounds && layerdef.bounds.length == 4) {
-                layerdef.bounds = L.latLngBounds(
-                    L.latLng(layerdef.bounds[1], layerdef.bounds[0]),
-                    L.latLng(layerdef.bounds[3], layerdef.bounds[2]));
-            }
-            $scope.tilejsonLayer = L.tileLayer(layerdef.tiles[0], layerdef);
-            map.addLayer($scope.tilejsonLayer);
+            $scope.wmsLayer = L.tileLayer($scope.wms.url, layerdef);
+            map.addLayer($scope.wmsLayer);
         }
     });
 };
@@ -209,58 +191,38 @@ function toUser(object) {
                     <input class="form-control" type="file" id="files" name="file" />
                 </div>
                 <div class="form-group">
-                    <label for="tilejsonversion">Tilejson Version</label>
-                    <select class="form-control" id="tilejsonversion" ng-model="tilejson.tilejson">
-                        <option value="1.0.0">1.0.0</option>
-                        <option value="2.0.0">2.0.0</option>
-                        <option value="2.0.1">2.0.1</option>
-                        <option value="2.1.0">2.1.0</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Name</label><input class="form-control" type="text" ng-model="tilejson.name" size="40"/>
-                </div>
-                <div class="form-group">
-                    <label>Description</label><input class="form-control" type="text" ng-model="tilejson.description" />
-                </div>
-                <div class="form-group">
-                    <label >Attribution</label><input class="form-control" type="text" ng-model="tilejson.attribution" />
-                </div>
-                <div class="form-group">
-                    <label>version</label><input class="form-control" type="text" ng-model="tilejson.version" size="10" />
-                </div>
-                <div class="form-group">
-                    <label for="scheme">Scheme</label>
-                    <select class="form-control" name="scheme" ng-model="tilejson.scheme">
-                        <option value="xyz">xyz</option> 
-                        <option value="tms">tms</option>
-                    </select>
-                </div>
-                <div class="form-group">
                     <label>Zoom</label>
                     <div>
-                        <input type="number" min="0" max="22" step="1" ng-model="tilejson.minzoom" />
+                        <input type="number" min="0" max="22" step="1" ng-model="wms.minzoom" />
                         -
-                        <input type="number" min="0" max="22" step="1" ng-model="tilejson.maxzoom" />
+                        <input type="number" min="0" max="22" step="1" ng-model="wms.maxzoom" />
                     </div>
                 </div>
+
                 <div class="form-group">
-                    <label>URL</label><input class="form-control" type="url" ng-model="tilejson.tiles[0]" size="40" />
+                    <label for="tilejsonversion">format</label>
+                    <select class="form-control" id="format" ng-model="wms.format"> 
+                        <option value="image/png">image/png</option>
+                        <option value="image/jpeg">image/jpeg</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label>Bounds</label>
-                    <div>
-                    SW <input class="latlon" type="number" min="-90" max="90" step="any" ng-model="tilejson.bounds[1]" />,<input class="latlon" type="number" min="-180" max="180" step="any" ng-model="tilejson.bounds[0]" /> 
-                    NE <input class="latlon" type="number" min="-90" max="90" step="any" ng-model="tilejson.bounds[3]" />,<input class="latlon" type="number" min="-180" max="180" step="any" ng-model="tilejson.bounds[2]" />
-                    </div>
+                    <label >Attribution</label><input class="form-control" type="text" ng-model="wms.attribution" />
+                </div>
+                <div class="form-group">
+                    <label>URL</label><input class="form-control" type="url" ng-model="wms.url" size="40" />
+                </div>
+                <div class="form-group">
+                    <label>Styles</label><input class="form-control" type="text" ng-model="wms.styles_string" size="40" />
+                </div>
+                <div class="form-group">
+                    <label>Layers</label><input class="form-control" type="text" ng-model="wms.layers_string" size="40" />
+                </div>
+                <div class="form-group">
+                    <label>Transparent</label><input class="form-control" type="checkbox" ng-model="wms.transparent" />
                 </div>
                 <div class="form-group">
                     <button class="btn btn-default" ng-click="updateLayer()">Update Map</button>
-                    <button class="btn btn-default" ng-click="downloadJson()">Download TileJSON</button>
-                </div>
-                <div class="form-group">
-                    <label>JSON, editable</label>
-                    <textarea class="form-control" json-text ng-model='tilejson' cols="30" rows="20"></textarea>
                 </div>
             </form>
         </div>
