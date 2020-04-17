@@ -38,6 +38,16 @@
             ['$scope', '$location', 'leafletData', 
             function($scope ,  $location ,  leafletData) {
                 angular.extend($scope, {
+                    paths:  {
+                        boundingbox: {
+                            type: 'rectangle',
+                            color: 'grey',
+                            weight: 1,
+                            fillColor: '#f5f5f5',
+                            latlngs: [ { lat: 0, lng: 0 }, { lat: 0, lng: 0 } ],
+                            clickable: false
+                        } 
+                    },
                     center: {
                         lat: 0,
                         lng: 0,
@@ -83,7 +93,6 @@ $scope.updateLayer = function() {
                 "scheme": "xyz",
                 "minzoom": 0,
                 "maxzoom": 11,
-                "maxzoom": 22,
                 "bounds": [-180, -90, 180, 90],
             };
             angular.extend(layerdef, $scope.tilejson);
@@ -108,6 +117,11 @@ $scope.updateLayer = function() {
             }
             $scope.tilejsonLayer = L.tileLayer(layerdef.tiles[0], layerdef);
             map.addLayer($scope.tilejsonLayer);
+            // and draw a box around the map's bounds
+            $scope.paths.boundingbox.latlngs[0].lat = $scope.tilejson.bounds[1];
+            $scope.paths.boundingbox.latlngs[0].lng = $scope.tilejson.bounds[0];
+            $scope.paths.boundingbox.latlngs[1].lat = $scope.tilejson.bounds[3];
+            $scope.paths.boundingbox.latlngs[1].lng = $scope.tilejson.bounds[2];
         }
     });
 };
@@ -120,7 +134,7 @@ $scope.downloadJson = function() {
 };
 
 function handleFileSelect(evt) {
-    console.log(evt);
+    // console.log(evt);
     var files = evt.target.files;
     for (var i = 0, f; f = files[i]; i++) {
         var reader = new FileReader();
@@ -137,7 +151,6 @@ function handleFileSelect(evt) {
     }
     document.getElementById('files').value = null;
 }
-
 document.getElementById('files').addEventListener('change', handleFileSelect, false);
 
 } ]);
@@ -237,7 +250,7 @@ function toUser(object) {
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Zoom</label>
+                    <label>Zoom</label> (between 0 and 22)
                     <div>
                         <input type="number" min="0" max="22" step="1" ng-model="tilejson.minzoom" />
                         -
@@ -248,10 +261,14 @@ function toUser(object) {
                     <label>URL</label><input class="form-control" type="url" ng-model="tilejson.tiles[0]" size="40" />
                 </div>
                 <div class="form-group">
-                    <label>Bounds</label>
+                    <label>West, South, East, North Bounds</label> (Defaults are OK)
+                    <div ng-show="tilejson.bounds[0]>=tilejson.bounds[2]" style="color:red">West must be less than East</div>
+                    <div ng-show="tilejson.bounds[1]>=tilejson.bounds[3]" style="color:red">South must be less than North</div>
                     <div>
-                    SW <input class="latlon" type="number" min="-90" max="90" step="any" ng-model="tilejson.bounds[1]" />,<input class="latlon" type="number" min="-180" max="180" step="any" ng-model="tilejson.bounds[0]" /> 
-                    NE <input class="latlon" type="number" min="-90" max="90" step="any" ng-model="tilejson.bounds[3]" />,<input class="latlon" type="number" min="-180" max="180" step="any" ng-model="tilejson.bounds[2]" />
+                    W <input class="latlon" type="number" min="-180" max="180" step="any" ng-model="tilejson.bounds[0]" /> 
+                    S <input class="latlon" type="number" min="-90" max="90" step="any" ng-model="tilejson.bounds[1]" />,
+                    E <input class="latlon" type="number" min="-180" max="180" step="any" ng-model="tilejson.bounds[2]" />
+                    N <input class="latlon" type="number" min="-90" max="90" step="any" ng-model="tilejson.bounds[3]" />,
                     </div>
                 </div>
                 <div class="form-group">
@@ -265,7 +282,7 @@ function toUser(object) {
             </form>
         </div>
         <div style="height:100%" class="col-md-8">
-            <leaflet defaults="defaults" width="100%" height="100%" center="center" controls="controls"></leaflet>
+            <leaflet defaults="defaults" width="100%" paths="paths" height="100%" center="center" controls="controls"></leaflet>
         </div>
     </div>
 </div>
